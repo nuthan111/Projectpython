@@ -1,0 +1,40 @@
+import pandas as pd
+import re
+import string
+
+def load_and_clean_data():
+    # Load datasets
+    data_fake = pd.read_csv('Fake.csv', encoding='latin1')
+    data_true = pd.read_csv('True.csv', encoding='latin1')
+
+    # Drop columns with more than 50% missing values
+    for df in [data_fake, data_true]:
+        for col in df.columns:
+            p = (df[col].isnull().sum() / df[col].shape[0]) * 100
+            if p > 50:
+                df.drop([col], axis=1, inplace=True)
+        df.dropna(inplace=True)
+
+    # Add a label column
+    data_fake['class'] = 0
+    data_true['class'] = 1
+
+    # Combine datasets
+    data_merge = pd.concat([data_fake, data_true], axis=0)
+    data_merge.reset_index(drop=True, inplace=True)
+    return data_merge
+
+def preprocess_text(data):
+    def wordopt(text):
+        text = text.lower()
+        text = re.sub(r'\[.*?\]', ' ', text)
+        text = re.sub(r"\\W", " ", text)
+        text = re.sub(r"http?:\/\/\S+\s+", '', text)
+        text = re.sub(r"<.*?>", " ", text)
+        text = re.sub(r"[%s]" % re.escape(string.punctuation), " ", text)
+        text = re.sub(r"\n", " ", text)
+        text = re.sub(r"\w*\d\w*", '', text)
+        return text
+
+    data['text'] = data['text'].apply(wordopt)
+    return data
